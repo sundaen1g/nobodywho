@@ -4,3 +4,6 @@ android/.cxx/
 android/src/main/jniLibs/
 NobodyWho.xcframework/
 test-app/
+src/uniffi.wasm
+dist/
+*.tgz

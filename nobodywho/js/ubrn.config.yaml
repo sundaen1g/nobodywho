@@ -20,6 +20,13 @@ android:
   apiLevel: 28
   useSharedLibrary: true
 
+wasm2:
+  ts: src/generated/wasm
+  # Once supported in uniffi-bindgen-react-native, use:
+  #
+  # targets:
+  # - wasm32-unknown-emscripten
+
 noOverwrite:
 # Downloads prebuilt xcframework from GitHub Releases, custom authors/source fields
 - Nobodywho.podspec
@@ -31,3 +38,5 @@ noOverwrite:
 - android/src/main/AndroidManifest.xml
 # Uses TSX syntax unnecessarily, and besides, we want to customize it.
 - src/index.tsx
+# Unnecessary, we need to load the WASM file using Emscripten in a custom manner.
+- src/generated/wasm/index.ts
