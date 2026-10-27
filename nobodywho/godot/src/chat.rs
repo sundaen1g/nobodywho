@@ -105,24 +105,20 @@ impl NobodyWhoChat {
                 godot_error!("NobodyWhoChat.create() expects a NobodyWhoModel or a path String");
                 return Variant::nil();
             };
-            // `ChatHandleAsync::new` creates the `Chat` synchronously, so run it
-            // on a worker thread to avoid blocking the event loop.
-            let result =
-                on_blocking_thread(move || nobodywho::chat::ChatHandleAsync::new(arc, chat_config))
-                    .await;
+            // `ChatHandleAsync::new` creates the `Chat` synchronously, so run
+            // it on a worker thread to avoid blocking the event loop.
+            let result = worker
+                .run(move || nobodywho::chat::ChatHandleAsync::new(arc, chat_config))
+                .await;
             match result {
-                Some(Ok(handle)) => Gd::from_init_fn(|base| NobodyWhoChat {
+                Ok(handle) => Gd::from_init_fn(|base| NobodyWhoChat {
                     handle,
                     reentrancy_flag,
                     base,
                 })
                 .to_variant(),
-                Some(Err(e)) => {
+                Err(e) => {
                     godot_error!("Failed to create chat: {}", nobodywho::render_miette(&e));
-                    Variant::nil()
-                }
-                None => {
-                    godot_error!("Chat worker init panicked");
                     Variant::nil()
                 }
             }
