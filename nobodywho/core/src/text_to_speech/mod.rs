@@ -40,15 +40,20 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! Kokoro needs the `kokoro` Cargo feature (on by default), because its
+//! phonemizer links espeak-ng (GPL-3.0-or-later). Without it, [`KokoroConfig`]
+//! still exists, but [`TextToSpeech::new`] returns
+//! [`TextToSpeechError::KokoroNotCompiled`] for Kokoro configs.
 
 mod architecture;
+#[cfg(feature = "kokoro")]
 mod kokoro;
 mod pocket;
 mod supertonic;
 
 use crate::errors::TextToSpeechError;
 pub use crate::onnx::Device as TextToSpeechDevice;
-pub use kokoro::KokoroConfig;
 pub use pocket::{PocketTtsConfig, PocketTtsPrecision};
 use std::{str::FromStr, sync::mpsc, sync::Arc};
 pub use supertonic::SupertonicConfig;
@@ -126,6 +131,28 @@ impl TextToSpeechConfig {
     }
 }
 
+// Defined here rather than in `kokoro.rs` so it exists without the `kokoro`
+// feature: bindings build Kokoro configs either way.
+#[derive(Clone, Debug)]
+pub struct KokoroConfig {
+    pub source: String,
+    pub voice: String,
+    pub language: String,
+    pub speed: f32,
+}
+
+impl KokoroConfig {
+    pub fn new(source: impl AsRef<str>) -> Self {
+        Self {
+            source: source.as_ref().to_string(),
+            voice: "bf_emma".into(),
+            language: "en-gb".into(),
+            speed: 1.0,
+        }
+    }
+}
+
+#[cfg(feature = "kokoro")]
 pub(super) const DEFAULT_SAMPLE_RATE: u32 = 24000;
 
 type SynthRequest = (
@@ -267,5 +294,12 @@ mod tests {
     #[test]
     fn from_source_returns_none_when_architecture_unknown() {
         assert!(TextToSpeechConfig::from_source("hf://random/repo", None).is_none());
+    }
+
+    #[cfg(not(feature = "kokoro"))]
+    #[test]
+    fn kokoro_without_feature_errors_before_downloading() {
+        let result = TextToSpeech::new(TextToSpeechConfig::kokoro("hf://NobodyWho/Kokoro-82M"));
+        assert!(matches!(result, Err(TextToSpeechError::KokoroNotCompiled)));
     }
 }
